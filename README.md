@@ -68,7 +68,6 @@ src/
  └── resources/
      ├── application.properties
      └── docker-compose.yml
- └── test/
      ├──unit/ → tests unitaires
      ├──it/ → tests d’intégration
 ```
@@ -148,7 +147,7 @@ L’API peut fonctionner selon deux modes, en fonction de la présence d’un to
 Lorsque le token est fourni, l’application utilise le modèle :
 `nlptown/bert-base-multilingual-uncased-sentiment`
 
-Le token doit être renseigné dans un fichier `config.properties` :
+Le token doit être renseigné dans un fichier `config.properties` situé dans le dossier `src/main/resources` :
 
 ```
 HUGGINGFACE_TOKEN=VOTRE_TOKEN_ICI
@@ -167,6 +166,8 @@ HUGGINGFACE_TOKEN=VOTRE_TOKEN_ICI
 | 4 – 5 | POSITIVE  |
 
 En cas d’erreur ou de réponse invalide, un **fallback automatique** renvoie un sentiment `NEUTRAL`.
+
+Ce modèle a été choisi car supporte **le français et plusieurs autres langues**, ce qui le rend adapté à des textes multilingues
 
 ---
 

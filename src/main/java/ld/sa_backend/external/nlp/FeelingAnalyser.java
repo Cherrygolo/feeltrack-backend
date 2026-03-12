@@ -1,22 +1,20 @@
 package ld.sa_backend.external.nlp;
 
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.*;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-import ld.sa_backend.dto.NLPModelApiResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import ld.sa_backend.dto.Rating;
 import ld.sa_backend.enums.ReviewType;
 import ld.sa_backend.exception.ExternalApiException;
@@ -38,7 +36,7 @@ import ld.sa_backend.exception.ExternalApiException;
 
 public class FeelingAnalyser {
 
-    private static final String MODEL_URL = "https://api-inference.huggingface.co/models/nlptown/bert-base-multilingual-uncased-sentiment";
+    private static final String MODEL_URL = "https://router.huggingface.co/hf-inference/models/nlptown/bert-base-multilingual-uncased-sentiment";
 
 
     /**
@@ -54,7 +52,7 @@ public class FeelingAnalyser {
             System.err.println("Token for NLP model API unfound. Check the file config.properties.");
             return analyseTextFeelingTypeBasicly(textToAnalyse);
         }
-        
+
         HttpClient client = HttpClient.newHttpClient();
         String jsonBody = "{\"inputs\": \"" + textToAnalyse.replace("\"", "\\\"") + "\"}";
 
@@ -73,17 +71,17 @@ public class FeelingAnalyser {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            List<NLPModelApiResponse> responseList = mapper.readValue(
-                response.body(),
-                new TypeReference<List<NLPModelApiResponse>>() {});
 
-            if (responseList.isEmpty() || responseList.get(0).getRatings().isEmpty()) {
+            // Le modèle renvoie un tableau de tableaux, on doit donc d'abord parser le tableau extérieur
+            JsonNode rootNode = mapper.readTree(response.body());
+            if (!rootNode.isArray() || rootNode.size() == 0) {
                 throw new ExternalApiException(502, "Empty or malformed response of NLP model API");
             }
+            JsonNode innerArray = rootNode.get(0); // tableau intérieur
 
-            List<Rating> ratingList = responseList.get(0).getRatings();
+            List<Rating> ratingList = Arrays.asList(mapper.treeToValue(innerArray, Rating[].class));
+            // Convertir la liste de ratings en ReviewType
             return convertRatingListToReviewType(ratingList);
-            
 
         } catch (IOException e) {
             throw new ExternalApiException(503, "Error during communication with NLP model API : " + e.getMessage());
@@ -91,7 +89,6 @@ public class FeelingAnalyser {
             Thread.currentThread().interrupt();
             throw new ExternalApiException(503, "NLP request interrupted.");
         }
-    
     }
 
     /**
@@ -105,8 +102,8 @@ public class FeelingAnalyser {
     private static ReviewType analyseTextFeelingTypeBasicly(String text) {
         // Marqueurs simples
         String[] negations = {"ne", "n'", "pas", "jamais", "aucun", "sans"};
-        String[] simplePositive = {"bon", "bien", "ok"};
-        String[] simpleNegative = {"mal", "non", "nul"};
+        String[] simplePositive = {"bon", "bien", "ok", "positif", "super", "excellent"};
+        String[] simpleNegative = {"mal", "non", "nul", "négatif", "horrible", "terrible"};
 
         int score = 0;
         boolean negateNext = false;
@@ -158,11 +155,15 @@ public class FeelingAnalyser {
      */
     private static String loadToken() {
         Properties props = new Properties();
-        try (FileInputStream in = new FileInputStream("config.properties")) {
+        try (InputStream in = FeelingAnalyser.class.getClassLoader().getResourceAsStream("config.properties")) {
+            if (in == null) {
+                System.err.println("Impossible de trouver config.properties dans le classpath.");
+                return null;
+            }
             props.load(in);
             return props.getProperty("HUGGINGFACE_TOKEN");
         } catch (IOException e) {
-            System.err.println("Impossible de charger le fichier config.properties ou clé manquante.");
+            System.err.println("Impossible de charger config.properties ou clé manquante.");
             return null;
         }
     }
