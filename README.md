@@ -108,7 +108,7 @@ docker-compose up -d
 L’API est accessible à l’adresse :
 
 ```
-http://localhost:8080/api/v1
+http://localhost:8080/
 ```
 
 ---
