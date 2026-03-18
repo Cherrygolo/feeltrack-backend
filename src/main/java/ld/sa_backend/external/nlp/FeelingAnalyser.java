@@ -15,9 +15,9 @@ import java.util.Properties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ld.sa_backend.dto.Rating;
 import ld.sa_backend.enums.ReviewType;
 import ld.sa_backend.exception.ExternalApiException;
+import ld.sa_backend.wrapper.Rating;
 
 /**
  * Classe utilitaire pour analyser le sentiment d'un texte en utilisant un modèle 

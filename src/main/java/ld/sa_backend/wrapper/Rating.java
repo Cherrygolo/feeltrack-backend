@@ -1,4 +1,9 @@
-package ld.sa_backend.dto;
+package ld.sa_backend.wrapper;
+
+/*
+ * Classe simple pour représenter une évaluation de sentiment renvoyée par le modèle NLP.
+ * Elle contient un label (ex: "1 star", "2 stars", etc.) et un score de confiance associé.
+*/
 
 public class Rating {
 
