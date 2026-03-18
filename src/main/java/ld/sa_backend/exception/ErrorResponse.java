@@ -16,7 +16,7 @@
  * </pre>
  */
 
-package ld.sa_backend.dto;
+package ld.sa_backend.exception;
 
 public record ErrorResponse(
         String code,

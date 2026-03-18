@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.persistence.EntityNotFoundException;
-import ld.sa_backend.dto.ErrorResponse;
+import ld.sa_backend.exception.ErrorResponse;
 import ld.sa_backend.exception.ExternalApiException;
 
 
