@@ -9,6 +9,8 @@
 
 package ld.sa_backend.it.controller;
 
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ import ld.sa_backend.repository.CustomerRepository;
 import ld.sa_backend.repository.ReviewRepository;
 import ld.sa_backend.testutils.CustomerTestBuilder;
 import ld.sa_backend.testutils.ReviewTestBuilder;
+import ld.sa_backend.testutils.TestDataFactory;
 
 /**
  * Integration tests for {@link ld.sa_backend.controller.ReviewController}.
@@ -141,6 +144,30 @@ class ReviewControllerIT {
     }
 
     //endregion
+
+    //region ------------ GET REVIEW STATS ------------
+    @Test
+    void getReviewStats_shouldReturnReviewStats() throws Exception {
+
+        List<Review> reviews = TestDataFactory.createReviewListWithDifferentTypes(5, 3, 2);
+        reviewRepository.saveAll(reviews);
+
+        mockMvc.perform(get("/review/stats"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.positive").value(5))
+            .andExpect(jsonPath("$.negative").value(3))
+            .andExpect(jsonPath("$.neutral").value(2));
+    }
+
+    @Test
+    void getReviewStats_shouldReturnZeroWhenNoReviews() throws Exception {
+
+        mockMvc.perform(get("/review/stats"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.positive").value(0))
+            .andExpect(jsonPath("$.negative").value(0))
+            .andExpect(jsonPath("$.neutral").value(0));
+    }
 
     //region ------------ DELETE REVIEW ------------
 

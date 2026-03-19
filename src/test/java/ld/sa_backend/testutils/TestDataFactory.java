@@ -64,7 +64,25 @@ public class TestDataFactory {
     public static Review createReviewWithType(ReviewType type) {
         return ReviewTestBuilder.aReview()
             .withType(type)
+            .withText("Review with type " + type.name())
             .build();
+    }
+
+    public static List<Review> createReviewListWithDifferentTypes(int positiveNumber, int negativeNumber, int neutralNumber) {
+        List<Review> reviews = new ArrayList<>();
+        for (int i = 0 ; i < positiveNumber ; i++) {
+            reviews.add(createReviewWithType(ReviewType.POSITIVE));
+        }
+        for (int i = 0 ; i < negativeNumber ; i++) {
+            reviews.add(createReviewWithType(ReviewType.NEGATIVE));
+        }
+        for (int i = 0 ; i < neutralNumber ; i++) {
+            reviews.add(createReviewWithType(ReviewType.NEUTRAL));
+        }
+        // Assigner un customer par défaut à chaque review pour éviter les nulls
+        reviews.forEach(r -> r.setCustomer(createDefaultCustomer()));
+        
+        return reviews;
     }
 
     //#endregion
