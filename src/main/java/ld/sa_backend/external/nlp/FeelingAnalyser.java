@@ -49,7 +49,7 @@ public class FeelingAnalyser {
 
         String token = loadToken();
         if (token == null || token.isBlank()) {
-            System.err.println("Token for NLP model API unfound. Check the file config.properties.");
+            System.err.println("Token pour l\'API de modèle NLP model introuvable. Vérifier le fichier config.properties.");
             return analyseTextFeelingTypeBasicly(textToAnalyse);
         }
 
