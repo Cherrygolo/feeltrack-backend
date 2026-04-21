@@ -12,9 +12,9 @@ import ld.feeltrack_backend.projection.ReviewCountProjection;
 
 public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
-    List<Review> findAllByOrderByIdDesc();
+    List<Review> findAllByOrderByCreatedAtDesc();
     List<Review> findByType(ReviewType type);
-    List<Review> findByTypeOrderByIdDesc(ReviewType type);
+    List<Review> findByTypeOrderByCreatedAtDesc(ReviewType type);
     
     boolean existsByCustomerId(int customerId);
 

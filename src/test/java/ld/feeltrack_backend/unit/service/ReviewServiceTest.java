@@ -209,13 +209,13 @@ class ReviewServiceTest {
 
         List<Review> existingReviews = List.of(positiveReview, negativeReview);
 
-        when(reviewRepository.findAllByOrderByIdDesc()).thenReturn(existingReviews);
+        when(reviewRepository.findAllByOrderByCreatedAtDesc()).thenReturn(existingReviews);
 
         List<Review> foundReviews = reviewService.findReviews(null);
 
         assertEquals(2, foundReviews.size());
-        verify(reviewRepository).findAllByOrderByIdDesc();
-        verify(reviewRepository, never()).findByTypeOrderByIdDesc(any());
+        verify(reviewRepository).findAllByOrderByCreatedAtDesc();
+        verify(reviewRepository, never()).findByTypeOrderByCreatedAtDesc(any());
     }
 
     @Test
@@ -243,7 +243,7 @@ class ReviewServiceTest {
             .withType(ReviewType.POSITIVE)
             .build();
 
-        when(reviewRepository.findByTypeOrderByIdDesc(ReviewType.NEGATIVE))
+        when(reviewRepository.findByTypeOrderByCreatedAtDesc(ReviewType.NEGATIVE))
             .thenReturn(List.of(negativeReview1, negativeReview2));
 
         List<Review> foundReviews = reviewService.findReviews(ReviewType.NEGATIVE);
@@ -253,8 +253,8 @@ class ReviewServiceTest {
             review -> review.getType() == ReviewType.NEGATIVE
         ));
 
-        verify(reviewRepository).findByTypeOrderByIdDesc(ReviewType.NEGATIVE);
-        verify(reviewRepository, never()).findAllByOrderByIdDesc();
+        verify(reviewRepository).findByTypeOrderByCreatedAtDesc(ReviewType.NEGATIVE);
+        verify(reviewRepository, never()).findAllByOrderByCreatedAtDesc();
     }
 
     //endregion

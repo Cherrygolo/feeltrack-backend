@@ -60,10 +60,10 @@ public class ReviewService {
 
         if (reviewType == null) {
             //Tri par date décroissante pour afficher les avis les plus récents en premier
-            return this.reviewRepository.findAllByOrderByIdDesc();
+            return this.reviewRepository.findAllByOrderByCreatedAtDesc();
         }
         
-        return this.reviewRepository.findByTypeOrderByIdDesc(reviewType);
+        return this.reviewRepository.findByTypeOrderByCreatedAtDesc(reviewType);
     }
 
     public ReviewStatsDTO getReviewStats() {
