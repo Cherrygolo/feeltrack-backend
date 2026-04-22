@@ -416,9 +416,9 @@ Aucun
 Exemple de réponse :
 ```json
 {
-  "positiveReviews": 80,
-  "negativeReviews": 30,
-  "neutralReviews": 10
+  "positive": 80,
+  "negative": 30,
+  "neutral": 10
 }
 ```
 
