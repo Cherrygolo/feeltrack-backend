@@ -543,12 +543,11 @@ diskSpace → espace disque
 
 Les évolutions suivantes sont volontairement identifiées afin de démontrer la capacité du projet à évoluer vers un contexte de production :
 
-- Conteneurisation complète de l’API Spring Boot
+- Déploiement dans le cloud
 - Ajout de Swagger / OpenAPI
 - Sécurisation de l’API (JWT / Spring Security)
 - Centralisation de la configuration via variables d’environnement
-- Ajout d’un front-end (Angular ou React)
-- Mise en place de métriques et de monitoring
+- Ajout d’un front-end (développement du front-end Angular en cours)
 
 ---
 
