@@ -1,9 +1,6 @@
 package ld.feeltrack_backend.entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -31,25 +28,18 @@ public class Review {
     @Enumerated(EnumType.STRING)
     private ReviewType type;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    /**
-     * Creation date of the review (day only), used for temporal statistics.
-     * Optimized for aggregation queries (avoids DATE(createdAt)).
-     */
-    @Column(name = "created_date", nullable = false, updatable = false)
-    private LocalDate createdDate;
 
     @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "customer_id")
     private Customer customer;
 
-    // Initialize createdDate before insertion
     @PrePersist
     public void prePersist() {
-        this.createdDate = LocalDate.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 
     public Review() {
@@ -84,12 +74,12 @@ public class Review {
         this.type = type;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
-    public LocalDate getCreatedDate() {
-        return createdDate;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
     public Customer getCustomer() {

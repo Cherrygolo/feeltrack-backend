@@ -17,13 +17,12 @@ CREATE TABLE customer (
 CREATE TABLE review (
     id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_date DATE NOT NULL,
     text VARCHAR(1000),
     type VARCHAR(10),
     customer_id INTEGER,
     CONSTRAINT fk_review_customer FOREIGN KEY (customer_id) REFERENCES customer(id)
 );
 
-CREATE INDEX idx_review_created_date_type
-ON review(created_date, type);
+CREATE INDEX idx_review_created_at_type
+ON review (created_at, type);
 

@@ -1,6 +1,6 @@
 package ld.feeltrack_backend.repository;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,23 +21,27 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
     boolean existsByCustomerId(int customerId);
 
     @Query("""
-    SELECT r.type AS type, COUNT(r) AS count
-    FROM Review r
-    GROUP BY r.type
+        SELECT r.type AS type, COUNT(r) AS count
+        FROM Review r
+        GROUP BY r.type
     """)
     List<ReviewCountProjection> countReviewsByType();
 
-    // Timeline query to get daily counts of reviews by type for the last N days
+    /**
+     * Returns the number of reviews grouped by creation date and review type
+     * for analytics and dashboard timeline purposes.
+     */
     @Query("""
-    SELECT r.createdDate AS createdDate,
-        r.type AS type,
-        COUNT(r) AS count
-    FROM Review r
-    WHERE r.createdDate >= :from
-    GROUP BY r.createdDate, r.type
-    ORDER BY r.createdDate
+        SELECT
+            CAST(r.createdAt AS date) AS createdDate,
+            r.type AS type,
+            COUNT(r) AS count
+        FROM Review r
+        WHERE r.createdAt >= :from
+        GROUP BY CAST(r.createdAt AS date), r.type
+        ORDER BY createdDate, type
     """)
-    List<ReviewTimelineProjection> getTimeline(LocalDate from);
+    List<ReviewTimelineProjection> countReviewsByDateAndType(LocalDateTime from);
     
 
 }
