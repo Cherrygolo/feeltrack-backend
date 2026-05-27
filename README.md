@@ -422,6 +422,39 @@ Exemple de réponse :
 }
 ```
 
+#### GET /api/v1/review/stats/timeline
+
+Récupère les statistiques sur les avis selon leur date et type sur une période donnée
+
+Paramètre :
+- days : Période à prendre compte jusqu'à aujourd'hui en nombre de jours (30 par défaut)
+(exemple : si days=30, alors on prendra la période des 30 derniers jours)
+
+**Réponse :**
+
+200 OK
+
+Exemple de réponse :
+```json
+[
+  {
+      "createdDate": "2025-10-06",
+      "positive": 3,
+      "negative": 0,
+      "neutral": 1
+  },
+  {
+      "createdDate": "2025-10-10",
+      "positive": 5,
+      "negative": 1,
+      "neutral": 2
+  }
+]
+```
+
+Si aucun avis existe, la réponse sera une liste vide.
+
+
 ---
 
 ### Actuator
