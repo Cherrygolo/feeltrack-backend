@@ -13,6 +13,9 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,36 +25,26 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityNotFoundException;
 import ld.feeltrack_backend.controller.CustomerController;
-import ld.feeltrack_backend.controller.advice.ApplicationControllerAdvice;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.service.CustomerService;
 import ld.feeltrack_backend.testutils.CustomerTestBuilder;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(CustomerController.class)
 class CustomerControllerTest {
 
+    @Autowired
     private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private CustomerService customerService;
 
-    @InjectMocks
-    private CustomerController customerController;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @BeforeEach
-    void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(customerController)
-                .setControllerAdvice(new ApplicationControllerAdvice())
-                .build();
-    }
+    @Autowired
+    private ObjectMapper objectMapper;
 
     //region ---------- CREATE CUSTOMER ----------
 
