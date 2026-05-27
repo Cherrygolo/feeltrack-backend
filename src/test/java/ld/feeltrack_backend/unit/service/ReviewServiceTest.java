@@ -1,9 +1,12 @@
 package ld.feeltrack_backend.unit.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,11 +25,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import jakarta.persistence.EntityNotFoundException;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineDTO;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
 import ld.feeltrack_backend.external.nlp.FeelingAnalyser;
 import ld.feeltrack_backend.projection.ReviewCountProjection;
+import ld.feeltrack_backend.projection.ReviewTimelineProjection;
 import ld.feeltrack_backend.repository.ReviewRepository;
 import ld.feeltrack_backend.service.CustomerService;
 import ld.feeltrack_backend.service.ReviewService;
@@ -288,6 +293,39 @@ class ReviewServiceTest {
         assertEquals(0, result.getNeutral());
     }
 
+    //endregion
+
+    //region ------------ GET REVIEW TIMELINE ------------
+
+    @Test
+    void getReviewTimeline_shouldReturnEmptyList_whenNoReviews() {
+        when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class))).thenReturn(Collections.emptyList());
+
+        List<ReviewTimelineDTO> timeline = reviewService.getReviewTimeline(30);
+
+        assertNotNull(timeline);
+        assertTrue(timeline.isEmpty());
+        verify(reviewRepository).countReviewsByDateAndType(any(LocalDateTime.class));
+    }
+
+    @Test
+    void getReviewTimeline_shouldReturnReviews_whenReviewsExist() {
+        LocalDate today = LocalDate.now();
+        List<ReviewTimelineProjection> mockData = List.of(
+            new ReviewTimelineProjectionImpl(today, ReviewType.POSITIVE, 5L),
+            new ReviewTimelineProjectionImpl(today.minusDays(1), ReviewType.NEGATIVE, 2L)
+        );
+
+        when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class))).thenReturn(mockData);
+
+        List<ReviewTimelineDTO> timeline = reviewService.getReviewTimeline(30);
+
+        assertNotNull(timeline);
+        assertFalse(timeline.isEmpty());
+        verify(reviewRepository).countReviewsByDateAndType(any(LocalDateTime.class));
+    }
+
+    //endregion
 
     //region ------------ DELETE REVIEW ------------
 
@@ -336,5 +374,21 @@ class ReviewServiceTest {
 
         public ReviewType getType() { return type; }
         public long getCount() { return count; }
+    }
+
+    static class ReviewTimelineProjectionImpl implements ReviewTimelineProjection {
+        private final LocalDate createdDate;
+        private final ReviewType type;
+        private final Long count;
+
+        ReviewTimelineProjectionImpl(LocalDate createdDate, ReviewType type, Long count) {
+            this.createdDate = createdDate;
+            this.type = type;
+            this.count = count;
+        }
+
+        public LocalDate getCreatedDate() { return createdDate; }
+        public ReviewType getType() { return type; }
+        public Long getCount() { return count; }
     }
 }

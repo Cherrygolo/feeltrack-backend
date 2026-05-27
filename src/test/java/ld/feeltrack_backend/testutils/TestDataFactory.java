@@ -7,6 +7,7 @@
 
 package ld.feeltrack_backend.testutils;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,6 +69,13 @@ public class TestDataFactory {
             .build();
     }
 
+    public static Review createReviewWithTypeAndDate(ReviewType type, LocalDate date) {
+        return ReviewTestBuilder.aReview()
+            .withType(type)
+            .withCreatedAt(date.atStartOfDay())
+            .build();
+    }
+
     public static List<Review> createReviewListWithDifferentTypes(int positiveNumber, int negativeNumber, int neutralNumber) {
         List<Review> reviews = new ArrayList<>();
         for (int i = 0 ; i < positiveNumber ; i++) {
@@ -82,6 +90,56 @@ public class TestDataFactory {
         // Assigner un customer par défaut à chaque review pour éviter les nulls
         reviews.forEach(r -> r.setCustomer(createDefaultCustomer()));
         
+        return reviews;
+    }
+
+    public static List<Review> createReviewsForDay(
+        LocalDate date,
+        int positiveNumber,
+        int negativeNumber,
+        int neutralNumber
+    ) {
+
+        List<Review> reviews = new ArrayList<>();
+
+        for (int i = 0; i < positiveNumber; i++) {
+            reviews.add(createReviewWithTypeAndDate(ReviewType.POSITIVE, date));
+        }
+
+        for (int i = 0; i < negativeNumber; i++) {
+            reviews.add(createReviewWithTypeAndDate(ReviewType.NEGATIVE, date));
+        }
+
+        for (int i = 0; i < neutralNumber; i++) {
+            reviews.add(createReviewWithTypeAndDate(ReviewType.NEUTRAL, date));
+        }
+
+        return reviews;
+    }
+
+    public static List<Review> createTimelineReviews(
+            List<TimelineDayData> timelineData
+    ) {
+
+        List<Review> reviews = new ArrayList<>();
+
+        for (int i = 0; i < timelineData.size(); i++) {
+
+            TimelineDayData day = timelineData.get(i);
+
+            LocalDate date =
+                LocalDate.now().minusDays(timelineData.size() - 1 - i);
+
+            reviews.addAll(
+                createReviewsForDay(
+                    date,
+                    day.positive(),
+                    day.negative(),
+                    day.neutral()
+                )
+            );
+        }
+
         return reviews;
     }
 

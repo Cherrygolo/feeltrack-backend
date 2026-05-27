@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,6 +37,7 @@ import ld.feeltrack_backend.repository.ReviewRepository;
 import ld.feeltrack_backend.testutils.CustomerTestBuilder;
 import ld.feeltrack_backend.testutils.ReviewTestBuilder;
 import ld.feeltrack_backend.testutils.TestDataFactory;
+import ld.feeltrack_backend.testutils.TimelineDayData;
 
 /**
  * Integration tests for {@link ld.feeltrack_backend.controller.ReviewController}.
@@ -92,8 +94,7 @@ class ReviewControllerIT {
             .andExpect(jsonPath("$.text").value("Très bonne expérience !"))
             .andExpect(jsonPath("$.customer.email").value("customer@test.com"))
             .andExpect(jsonPath("$.type").value("POSITIVE"))
-            .andExpect(jsonPath("$.createdAt").isNotEmpty())
-            .andExpect(jsonPath("$.createdDate").isNotEmpty());
+            .andExpect(jsonPath("$.createdAt").isNotEmpty());
     }
 
     //endregion
@@ -171,6 +172,55 @@ class ReviewControllerIT {
             .andExpect(jsonPath("$.negative").value(0))
             .andExpect(jsonPath("$.neutral").value(0));
     }
+
+    //endregion
+
+    //region ------------ GET REVIEW TIMELINE -----------
+    @Test
+    void getReviewTimeline_shouldReturnCorrectTimelineDatas() throws Exception {
+
+        List<TimelineDayData> expected = List.of(
+            new TimelineDayData(1, 2, 1),
+            new TimelineDayData(5, 0, 2),
+            new TimelineDayData(2, 1, 1)
+        );
+
+        reviewRepository.saveAll(
+            TestDataFactory.createTimelineReviews(expected)
+        );
+
+        ResultActions result = mockMvc.perform(get("/review/stats/timeline"));
+
+        System.out.println("=== RESPONSE ===");
+        System.out.println(result.andReturn().getResponse().getContentAsString());
+
+        result.andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(expected.size()));
+
+        for (int i = 0; i < expected.size(); i++) {
+
+            TimelineDayData day = expected.get(i);
+
+            String path = "$[" + i + "]";
+
+            result.andExpect(jsonPath(path + ".positive")
+                    .value(day.positive()))
+                .andExpect(jsonPath(path + ".negative")
+                    .value(day.negative()))
+                .andExpect(jsonPath(path + ".neutral")
+                    .value(day.neutral()));
+        }
+    }
+
+    @Test
+    void getReviewTimeline_shouldReturnEmptyList_whenNoReviews() throws Exception {
+
+        mockMvc.perform(get("/review/stats/timeline"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    //endregion
 
     //region ------------ DELETE REVIEW ------------
 

@@ -1,5 +1,6 @@
 package ld.feeltrack_backend.unit.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,6 +27,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityNotFoundException;
 import ld.feeltrack_backend.controller.ReviewController;
+import ld.feeltrack_backend.dto.ReviewStatsDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineDTO;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
 import ld.feeltrack_backend.service.ReviewService;
@@ -146,4 +150,79 @@ class ReviewControllerTest {
     }
 
     //endregion
+
+
+
+    //region ---------- GET REVIEW STATS ----------
+    
+    @Test
+	void getReviewStats_shouldReturnStatsWhenReviewsExist() throws Exception {
+
+		ReviewStatsDTO stats =
+			new ReviewStatsDTO(5, 2, 1);
+
+		when(reviewService.getReviewStats())
+			.thenReturn(stats);
+
+		mockMvc.perform(get("/review/stats"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.positive").value(5))
+			.andExpect(jsonPath("$.negative").value(2))
+			.andExpect(jsonPath("$.neutral").value(1));
+
+		verify(reviewService).getReviewStats();
+	}
+	
+	//endregion
+
+	//region ---------- GET REVIEW TIMELINE ----------
+
+	@Test
+	void getReviewTimeline_shouldReturnEmptyList_whenNoReviews() throws Exception {
+		when(reviewService.getReviewTimeline(any(Integer.class))).thenReturn(List.of());
+
+		mockMvc.perform(get("/review/stats/timeline")
+						.param("days", "30"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isArray())
+				.andExpect(jsonPath("$.length()").value(0));
+	}
+
+	@Test
+	void getReviewTimeline_shouldReturnTimelineData_whenReviewsExist() throws Exception {
+		List<TimelineDayData> timelineData = List.of(
+			new TimelineDayData(5, 2, 1),
+			new TimelineDayData(3, 1, 0)
+		);
+		ReviewTimelineDTO day1 = new ReviewTimelineDTO(LocalDate.now(), timelineData.get(0).positive(), timelineData.get(0).negative(), timelineData.get(0).neutral());
+		ReviewTimelineDTO day2 = new ReviewTimelineDTO(LocalDate.now().minusDays(1), timelineData.get(1).positive(), timelineData.get(1).negative(), timelineData.get(1).neutral());
+
+		when(reviewService.getReviewTimeline(any(Integer.class)))
+				.thenReturn(List.of(day1, day2));
+				
+
+		ResultActions result = mockMvc.perform(get("/review/stats/timeline")
+						.param("days", "30"))
+						.andExpect(status().isOk())
+						.andExpect(jsonPath("$").isArray())
+						.andExpect(jsonPath("$.length()").value(2));
+
+		System.out.println("=== RESPONSE ===");
+		System.out.println(result.andReturn().getResponse().getContentAsString());
+
+		for ( Integer i = 0; i < 2; i++) {
+			String path = "$[" + i + "]";
+			LocalDate expectedDate = LocalDate.now().minusDays(i);
+			result.andExpect(jsonPath(path + ".createdDate").exists())		
+			// java.lang.AssertionError: Got a list of values [2026,5,21] instead of the expected single value 2026-05-21	
+				.andExpect(jsonPath(path + ".createdDate").value(expectedDate.toString()))
+				.andExpect(jsonPath(path + ".positive").value(timelineData.get(i).positive()))
+				.andExpect(jsonPath(path + ".negative").value(timelineData.get(i).negative()))
+				.andExpect(jsonPath(path + ".neutral").value(timelineData.get(i).neutral()));
+
+		}
+	}
+	
+	//endregion
+
 }
