@@ -16,7 +16,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -29,7 +28,7 @@ import ld.feeltrack_backend.dto.ReviewTimelineDTO;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
-import ld.feeltrack_backend.external.nlp.FeelingAnalyser;
+import ld.feeltrack_backend.external.nlp.SentimentService;
 import ld.feeltrack_backend.projection.ReviewCountProjection;
 import ld.feeltrack_backend.projection.ReviewTimelineProjection;
 import ld.feeltrack_backend.repository.ReviewRepository;
@@ -53,6 +52,9 @@ class ReviewServiceTest {
 
     @InjectMocks
     private ReviewService reviewService;
+
+    @Mock
+    private SentimentService sentimentService;
 
 
     //region ------------ CREATE REVIEW ------------
@@ -151,43 +153,42 @@ class ReviewServiceTest {
 
     @Test
     void createReview_shouldCreateReviewSuccessfully_whenDataIsValid() {
+
         Customer customerFromRequest = TestDataFactory.createDefaultCustomer();
 
         Review reviewToCreate = ReviewTestBuilder.aReview()
-            .withCustomer(customerFromRequest)
-            .withText("Très bonne expérience !")
-            .build();
+                .withCustomer(customerFromRequest)
+                .withText("Très bonne expérience !\nJe recommande vivement.\n-Bob")
+                .build();
 
         Customer savedCustomer = CustomerTestBuilder.aCustomer()
-            .withId(1)
-            .withEmail(customerFromRequest.getEmail())
-            .build();
+                .withId(1)
+                .withEmail(customerFromRequest.getEmail())
+                .build();
 
         when(customerService.findOrCreateCustomer(customerFromRequest))
-            .thenReturn(savedCustomer);
+                .thenReturn(savedCustomer);
 
-        try (var mockedFeelingAnalyser = Mockito.mockStatic(FeelingAnalyser.class)) {
-            mockedFeelingAnalyser
-                .when(() -> FeelingAnalyser.analyzeFeelingType(reviewToCreate.getText()))
+        when(sentimentService.analyze(reviewToCreate.getText()))
                 .thenReturn(ReviewType.POSITIVE);
 
-            when(reviewRepository.save(any(Review.class)))
+        when(reviewRepository.save(any(Review.class)))
                 .thenAnswer(invocation -> {
                     Review savedReview = invocation.getArgument(0);
                     savedReview.setId(99);
                     return savedReview;
                 });
 
-            Review createdReview = reviewService.createReview(reviewToCreate);
+        Review createdReview = reviewService.createReview(reviewToCreate);
 
-            assertNotNull(createdReview);
-            assertEquals(99, createdReview.getId());
-            assertEquals(savedCustomer, createdReview.getCustomer());
-            assertEquals(ReviewType.POSITIVE, createdReview.getType());
+        assertNotNull(createdReview);
+        assertEquals(99, createdReview.getId());
+        assertEquals(savedCustomer, createdReview.getCustomer());
+        assertEquals(ReviewType.POSITIVE, createdReview.getType());
 
-            verify(customerService).findOrCreateCustomer(customerFromRequest);
-            verify(reviewRepository).save(reviewToCreate);
-        }
+        verify(customerService).findOrCreateCustomer(customerFromRequest);
+        verify(sentimentService).analyze(reviewToCreate.getText());
+        verify(reviewRepository).save(any(Review.class));
     }
 
     //endregion

@@ -156,10 +156,10 @@ L’API peut fonctionner selon deux modes, en fonction de la présence d’un to
 Lorsque le token est fourni, l’application utilise le modèle :
 `nlptown/bert-base-multilingual-uncased-sentiment`
 
-Le token doit être renseigné dans un fichier `config.properties` situé dans le dossier `src/main/resources` :
+Le token doit être renseigné dans un fichier `application.properties` situé dans le dossier `src/main/resources` :
 
 ```
-HUGGINGFACE_TOKEN=VOTRE_TOKEN_ICI
+huggingface.token=VOTRE_TOKEN_ICI
 ```
 
 Étapes de l’analyse :

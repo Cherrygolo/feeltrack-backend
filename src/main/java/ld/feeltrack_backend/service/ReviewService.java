@@ -16,7 +16,7 @@ import ld.feeltrack_backend.dto.ReviewTimelineDTO;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
-import ld.feeltrack_backend.external.nlp.FeelingAnalyser;
+import ld.feeltrack_backend.external.nlp.SentimentService;
 import ld.feeltrack_backend.projection.ReviewCountProjection;
 import ld.feeltrack_backend.projection.ReviewTimelineProjection;
 import ld.feeltrack_backend.repository.ReviewRepository;
@@ -26,10 +26,12 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final CustomerService customerService;
+    private final SentimentService sentimentService;
 
-    public ReviewService(CustomerService customerService, ReviewRepository reviewRepository) {
+    public ReviewService(CustomerService customerService, ReviewRepository reviewRepository, SentimentService sentimentService) {
         this.customerService = customerService;
         this.reviewRepository = reviewRepository;
+        this.sentimentService = sentimentService;
     }
     
     public Review createReview(Review review) {
@@ -56,8 +58,8 @@ public class ReviewService {
 
         review.setCustomer(customer);
 
-        // Analyse du type
-        review.setType(FeelingAnalyser.analyzeFeelingType(review.getText()));
+        // Analyse du type de sentiment du texte de l'avis
+       review.setType(sentimentService.analyze(review.getText()));
 
         return reviewRepository.save(review);
     }
