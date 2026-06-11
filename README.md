@@ -424,36 +424,125 @@ Exemple de réponse :
 
 #### GET /api/v1/review/stats/timeline
 
-Récupère les statistiques sur les avis selon leur date et type sur une période donnée
+Récupère la série temporelle des avis agrégés selon une granularité et une période données.
 
-Paramètre :
-- days : Période à prendre compte jusqu'à aujourd'hui en nombre de jours (30 par défaut)
-(exemple : si days=30, alors on prendra la période des 30 derniers jours)
+Ce endpoint est utilisé pour alimenter les graphiques de type timeline dans le dashboard analytics.
 
-**Réponse :**
+---
 
-200 OK
+## Paramètres
 
-Exemple de réponse :
+- `days` *(optional, default = 30)*  
+  Nombre de jours à remonter à partir d’aujourd’hui.
+
+- `granularity` *(optional)*  
+  Niveau d’agrégation des données.
+
+  Valeurs possibles :
+  - `DAY`
+  - `WEEK`
+  - `MONTH`
+
+Si `granularity` n’est pas fourni, il est automatiquement déterminé en fonction de `days`.
+
+---
+
+## Règle de granularité automatique
+
+Si `granularity` est omis, le backend applique la règle suivante :
+
+- `days <= 14` → `DAY`
+- `15 <= days <= 60` → `WEEK`
+- `days > 60` → `MONTH`
+
+---
+
+## Réponse
+
+### 200 OK
+
 ```json
 [
   {
-      "createdDate": "2025-10-06",
-      "positive": 3,
-      "negative": 0,
-      "neutral": 1
-  },
-  {
-      "createdDate": "2025-10-10",
-      "positive": 5,
-      "negative": 1,
-      "neutral": 2
+    "startingPeriodDate": "2025-10-06",
+    "positive": 3,
+    "negative": 0,
+    "neutral": 1
   }
 ]
 ```
 
-Si aucun avis existe, la réponse sera une liste vide.
+### Exemples
+#### Cas 1 — granularité automatique (DAY)
 
+GET /api/v1/review/stats/timeline?days=7
+
+Réponse :
+```json
+{
+  "granularity": "DAY",
+  "data": [
+    {
+      "startingPeriodDate": "2025-06-11",
+      "positive": 2,
+      "negative": 1,
+      "neutral": 0
+    }
+  ]
+}
+```
+
+#### Cas 2 — granularité automatique (WEEK)
+
+GET /api/v1/review/stats/timeline?days=30
+
+Réponse :
+```json
+{
+  "granularity": "WEEK",
+  "data": [
+    {
+      "startingPeriodDate": "2025-09-29",
+      "positive": 10,
+      "negative": 3,
+      "neutral": 2
+    },
+    {
+      "startingPeriodDate": "2025-10-06",
+      "positive": 7,
+      "negative": 1,
+      "neutral": 4
+    }
+  ]
+}
+```
+
+#### Cas 3 — granularité explicite (MONTH)
+
+GET /api/v1/review/stats/timeline?days=90&granularity=MONTH
+
+Réponse :
+```json
+{
+  "granularity": "MONTH",
+  "data": [
+    {
+      "startingPeriodDate": "2025-10-01",
+      "positive": 2,
+      "negative": 1,
+      "neutral": 0
+    }
+  ]
+}
+```
+
+#### Explication du format
+startingPeriodDate représente le début de la période agrégée
+Les périodes sans données apparaissent avec zéro comme valeur pour ```positive```,```negative```,```neutral```.
+Le backend contrôle la granularité pour optimiser la lisibilité des graphiques
+
+__Cas particulier :__
+Si aucun avis n’existe sur la période → retourne []
 
 ---
 

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,8 +12,12 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
+import ld.feeltrack_backend.analytics.Granularity;
+import ld.feeltrack_backend.analytics.GranularityResolver;
+import ld.feeltrack_backend.analytics.TimeSeriesGranularity;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
-import ld.feeltrack_backend.dto.ReviewTimelineDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineItemDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineResponseDTO;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
@@ -91,27 +96,43 @@ public class ReviewService {
         );
     }
 
+    //TODO : TO DELETE
     // Get review counts grouped by day and type for the last N days
-    public List<ReviewTimelineDTO> getReviewTimeline(int days) {
+    public List<ReviewTimelineItemDTO> getReviewTimeline(int days) {
 
-        LocalDateTime from = LocalDateTime.now().minusDays(days);
+        /* 
+         * Initialization of the timeline with all dates and types to ensure continuity in the data
+        */
+        LocalDate startDate = LocalDate.now().minusDays(days);
+        LocalDate endDate = LocalDate.now();
 
-        List<ReviewTimelineProjection> raw = reviewRepository.countReviewsByDateAndType(from);
+        Map<LocalDate, ReviewTimelineItemDTO> timeline = new LinkedHashMap<>();
 
-        Map<LocalDate, ReviewTimelineDTO> map = new LinkedHashMap<>();
+        LocalDate current = startDate;
+
+        while (!current.isAfter(endDate)) {
+
+            timeline.put(
+                current,
+                new ReviewTimelineItemDTO(current, 0, 0, 0)
+            );
+
+            current = current.plusDays(1);
+        }
+
+        /*
+         * Filling the timeline with actual counts from the database
+        */
+
+        // Fetching raw counts from the database
+        List<ReviewTimelineProjection> raw =
+            reviewRepository.countReviewsByDateAndType(startDate.atStartOfDay());
 
         for (ReviewTimelineProjection row : raw) {
 
-            /* Process each row to populate the timeline data */
+            ReviewTimelineItemDTO dto =
+                timeline.get(row.getCreatedDate());
 
-            LocalDate date = row.getCreatedDate();
-            // Ensure there's a DTO for this date in the map, initialize counts to 0
-            map.putIfAbsent(
-                date,
-                new ReviewTimelineDTO(date, 0, 0, 0)
-            );
-            // Update the counts in the DTO based on the review type
-            ReviewTimelineDTO dto = map.get(date);
             switch (row.getType()) {
                 case POSITIVE -> dto.addPositive(row.getCount());
                 case NEGATIVE -> dto.addNegative(row.getCount());
@@ -119,7 +140,94 @@ public class ReviewService {
             }
         }
 
-        return new ArrayList<>(map.values());
+        return new ArrayList<>(timeline.values());
+    }
+
+
+    //TODO : TO TEST
+    // Get review counts grouped by day and type for the last N days with flexible granularity (day, week, month)
+    public ReviewTimelineResponseDTO getReviewTimeline(
+        int days,
+        Granularity granularity
+    ) {
+
+        LocalDateTime from = LocalDateTime.now().minusDays(days);
+        LocalDate to = LocalDate.now();
+
+        List<ReviewTimelineProjection> countReviewsByTypeAndDateResult =
+            reviewRepository.countReviewsByDateAndType(from);
+
+        Granularity finalGranularity =
+            (granularity != null)
+                ? granularity
+                : GranularityResolver.resolve(days);
+
+        /*
+         * Aggregation of review counts by normalized date and type 
+         * to fill the DTO timeline later.
+         */
+
+        Map<LocalDate, Map<ReviewType, Long>> reviewsCountByTypeAndDate = new HashMap<>();
+
+        for (ReviewTimelineProjection row : countReviewsByTypeAndDateResult) {
+
+            //normalize the date according to the granularity (day, week, month)
+            LocalDate normalizedDate =
+                TimeSeriesGranularity.normalize(row.getCreatedDate(), finalGranularity);
+
+            reviewsCountByTypeAndDate
+                .putIfAbsent(normalizedDate, new EnumMap<>(ReviewType.class));
+            
+            Map<ReviewType, Long> reviewCountByTypeForDate = reviewsCountByTypeAndDate.get(normalizedDate);
+
+            // Increment the count for the specific review type and date
+            reviewCountByTypeForDate.put(
+                row.getType(),
+                reviewCountByTypeForDate.getOrDefault(row.getType(), 0L) + row.getCount()
+            );
+        }
+
+        /*
+         * Building the complete timeline with all dates to ensure continuity in the data
+        */
+
+        List<LocalDate> timelineDates = new ArrayList<>();
+
+        LocalDate currentDate =
+            TimeSeriesGranularity.normalize(from.toLocalDate(), finalGranularity);
+
+        LocalDate endDate =
+            TimeSeriesGranularity.normalize(to, finalGranularity);
+
+        while (!currentDate.isAfter(endDate)) {
+            timelineDates.add(currentDate);
+            currentDate = TimeSeriesGranularity.increment(currentDate, finalGranularity);
+        }
+
+        /*
+         * Building the final DTO timeline with counts for each date and review type, 
+         * filling missing dates with zeros to ensure continuity in the data for the 
+         * frontend timeline visualization.
+         */
+
+        List<ReviewTimelineItemDTO> result = new ArrayList<>();
+
+        for (LocalDate date : timelineDates) {
+
+            Map<ReviewType, Long> reviewCountByTypeForDate =
+                reviewsCountByTypeAndDate.getOrDefault(date, Map.of());
+
+            ReviewTimelineItemDTO dto =
+                new ReviewTimelineItemDTO(date, 0, 0, 0);
+
+            dto.addPositive(reviewCountByTypeForDate.getOrDefault(ReviewType.POSITIVE, 0L));
+            dto.addNegative(reviewCountByTypeForDate.getOrDefault(ReviewType.NEGATIVE, 0L));
+            dto.addNeutral(reviewCountByTypeForDate.getOrDefault(ReviewType.NEUTRAL, 0L));
+
+            result.add(dto);
+        }
+
+        return new ReviewTimelineResponseDTO(finalGranularity, result);
     }
 
     public void deleteReview(int id) {

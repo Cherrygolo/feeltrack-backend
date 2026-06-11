@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
-import ld.feeltrack_backend.dto.ReviewTimelineDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineResponseDTO;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
 import ld.feeltrack_backend.service.ReviewService;
@@ -51,12 +51,12 @@ public class ReviewController {
     }
 
     @GetMapping(path ="/stats/timeline")
-    public ResponseEntity<List<ReviewTimelineDTO>> getTimeline(
+    public ResponseEntity<ReviewTimelineResponseDTO> getTimeline(
             @RequestParam(defaultValue = "30") int days) {
-
-        return ResponseEntity.ok(reviewService.getReviewTimeline(days));
+        ReviewTimelineResponseDTO timeline = reviewService.getReviewTimeline(days, null);
+        return ResponseEntity.ok(timeline);
     }
-    
+
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping(path = "{id}")
     public void deleteReview(@PathVariable int id) {

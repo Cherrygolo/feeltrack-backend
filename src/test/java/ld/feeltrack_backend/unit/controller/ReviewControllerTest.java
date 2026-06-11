@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import ld.feeltrack_backend.controller.ReviewController;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
-import ld.feeltrack_backend.dto.ReviewTimelineDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineItemDTO;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
 import ld.feeltrack_backend.service.ReviewService;
@@ -194,8 +194,8 @@ class ReviewControllerTest {
 			new TimelineDayData(5, 2, 1),
 			new TimelineDayData(3, 1, 0)
 		);
-		ReviewTimelineDTO day1 = new ReviewTimelineDTO(LocalDate.now(), timelineData.get(0).positive(), timelineData.get(0).negative(), timelineData.get(0).neutral());
-		ReviewTimelineDTO day2 = new ReviewTimelineDTO(LocalDate.now().minusDays(1), timelineData.get(1).positive(), timelineData.get(1).negative(), timelineData.get(1).neutral());
+		ReviewTimelineItemDTO day1 = new ReviewTimelineItemDTO(LocalDate.now(), timelineData.get(0).positive(), timelineData.get(0).negative(), timelineData.get(0).neutral());
+		ReviewTimelineItemDTO day2 = new ReviewTimelineItemDTO(LocalDate.now().minusDays(1), timelineData.get(1).positive(), timelineData.get(1).negative(), timelineData.get(1).neutral());
 
 		when(reviewService.getReviewTimeline(any(Integer.class)))
 				.thenReturn(List.of(day1, day2));

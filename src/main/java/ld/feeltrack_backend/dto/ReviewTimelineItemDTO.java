@@ -7,22 +7,22 @@ import java.time.LocalDate;
  * Used in the review timeline endpoint to provide temporal statistics.
  */
 
-public class ReviewTimelineDTO {
+public class ReviewTimelineItemDTO {
 
-    private LocalDate createdDate;
+    private final LocalDate startingPeriodDate;
     private long positive;
     private long negative;
     private long neutral;
 
-    public ReviewTimelineDTO(LocalDate createdDate, long positive, long negative, long neutral) {
-        this.createdDate = createdDate;
+    public ReviewTimelineItemDTO(LocalDate startingPeriodDate, long positive, long negative, long neutral) {
+        this.startingPeriodDate = startingPeriodDate;
         this.positive = positive;
         this.negative = negative;
         this.neutral = neutral;
     }
 
-    public LocalDate getCreatedDate() {
-        return createdDate;
+    public LocalDate getStartingPeriodDate() {
+        return startingPeriodDate;
     }
 
     public long getPositive() {

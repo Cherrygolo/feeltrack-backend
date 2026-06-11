@@ -24,7 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import jakarta.persistence.EntityNotFoundException;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
-import ld.feeltrack_backend.dto.ReviewTimelineDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineItemDTO;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
@@ -302,7 +302,7 @@ class ReviewServiceTest {
     void getReviewTimeline_shouldReturnEmptyList_whenNoReviews() {
         when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class))).thenReturn(Collections.emptyList());
 
-        List<ReviewTimelineDTO> timeline = reviewService.getReviewTimeline(30);
+        List<ReviewTimelineItemDTO> timeline = reviewService.getReviewTimeline(30);
 
         assertNotNull(timeline);
         assertTrue(timeline.isEmpty());
@@ -319,7 +319,7 @@ class ReviewServiceTest {
 
         when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class))).thenReturn(mockData);
 
-        List<ReviewTimelineDTO> timeline = reviewService.getReviewTimeline(30);
+        List<ReviewTimelineItemDTO> timeline = reviewService.getReviewTimeline(30);
 
         assertNotNull(timeline);
         assertFalse(timeline.isEmpty());
