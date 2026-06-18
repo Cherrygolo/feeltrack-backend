@@ -1,8 +1,12 @@
 package ld.feeltrack_backend.unit.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,6 +20,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -23,8 +29,11 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import jakarta.persistence.EntityNotFoundException;
+import ld.feeltrack_backend.analytics.Granularity;
+import ld.feeltrack_backend.analytics.GranularityResolver;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
 import ld.feeltrack_backend.dto.ReviewTimelineItemDTO;
+import ld.feeltrack_backend.dto.ReviewTimelineResponseDTO;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
@@ -37,6 +46,7 @@ import ld.feeltrack_backend.service.ReviewService;
 import ld.feeltrack_backend.testutils.CustomerTestBuilder;
 import ld.feeltrack_backend.testutils.ReviewTestBuilder;
 import ld.feeltrack_backend.testutils.TestDataFactory;
+import ld.feeltrack_backend.unit.service.ReviewServiceTest.ReviewTimelineProjectionImpl;
 
 /**
  * Classe de test unitaire pour ReviewService.
@@ -299,35 +309,144 @@ class ReviewServiceTest {
     //region ------------ GET REVIEW TIMELINE ------------
 
     @Test
-    void getReviewTimeline_shouldReturnEmptyList_whenNoReviews() {
+    void getReviewTimeline_shouldReturnZeroFilledTimeline_whenNoReviews() {
         when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class))).thenReturn(Collections.emptyList());
 
-        List<ReviewTimelineItemDTO> timeline = reviewService.getReviewTimeline(30);
+        ReviewTimelineResponseDTO timeline = reviewService.getReviewTimeline(30, Granularity.DAY);
 
         assertNotNull(timeline);
-        assertTrue(timeline.isEmpty());
+
+         List<ReviewTimelineItemDTO> data = timeline.data();
+        assertEquals(31, data.size());
+        assertTrue(data.stream().allMatch(
+            item -> item.getPositive() == 0L && 
+            item.getNegative() == 0L && 
+            item.getNeutral() == 0L
+        ));
         verify(reviewRepository).countReviewsByDateAndType(any(LocalDateTime.class));
     }
 
     @Test
     void getReviewTimeline_shouldReturnReviews_whenReviewsExist() {
         LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
         List<ReviewTimelineProjection> mockData = List.of(
-            new ReviewTimelineProjectionImpl(today, ReviewType.POSITIVE, 5L),
-            new ReviewTimelineProjectionImpl(today.minusDays(1), ReviewType.NEGATIVE, 2L)
+            new ReviewTimelineProjectionImpl(today, ReviewType.POSITIVE, 3L),
+            new ReviewTimelineProjectionImpl(yesterday, ReviewType.NEGATIVE, 1L),
+            new ReviewTimelineProjectionImpl(yesterday, ReviewType.NEGATIVE, 2L)
         );
 
         when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class))).thenReturn(mockData);
 
-        List<ReviewTimelineItemDTO> timeline = reviewService.getReviewTimeline(30);
+        ReviewTimelineResponseDTO timeline = reviewService.getReviewTimeline(30, Granularity.DAY);
 
         assertNotNull(timeline);
-        assertFalse(timeline.isEmpty());
+        assertNotNull(timeline.granularity());
+        assertFalse(timeline.data().isEmpty());
         verify(reviewRepository).countReviewsByDateAndType(any(LocalDateTime.class));
     }
 
-    //endregion
+    @Test
+    void getReviewTimeline_shouldUseProvidedGranularity() {
 
+        when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class)))
+            .thenReturn(Collections.emptyList());
+
+        ReviewTimelineResponseDTO result =
+            reviewService.getReviewTimeline(10, Granularity.WEEK);
+
+        assertEquals(Granularity.WEEK, result.granularity());
+    }
+
+    @Test
+    void getReviewTimeline_shouldUseGranularityResolver_whenGranularityIsNull() {
+        when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class)))
+        .thenReturn(Collections.emptyList());
+
+        try (MockedStatic<GranularityResolver> mocked =
+                Mockito.mockStatic(GranularityResolver.class)) {
+
+            mocked.when(() -> GranularityResolver.resolve(40))
+                .thenReturn(Granularity.WEEK);
+
+            ReviewTimelineResponseDTO result =
+                reviewService.getReviewTimeline(40, null);
+
+            assertEquals(Granularity.WEEK, result.granularity());
+
+            mocked.verify(() -> GranularityResolver.resolve(40));
+        }
+    }
+    
+    @Test
+    void getReviewTimeline_shouldAggregateReviewsCorrectly() {
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate lastWeek = today.minusWeeks(1);
+
+        List<ReviewTimelineProjection> mockData = List.of(
+            new ReviewTimelineProjectionImpl(today, ReviewType.POSITIVE, 2L),
+            new ReviewTimelineProjectionImpl(yesterday, ReviewType.POSITIVE, 3L),
+            new ReviewTimelineProjectionImpl(yesterday, ReviewType.NEGATIVE, 1L),
+            new ReviewTimelineProjectionImpl(lastWeek, ReviewType.NEGATIVE, 4L)
+        );
+
+        when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class)))
+            .thenReturn(mockData);
+
+        ReviewTimelineResponseDTO result =
+            reviewService.getReviewTimeline(14, Granularity.WEEK);
+
+        List<ReviewTimelineItemDTO> data = result.data();
+
+        // Data should be aggregated into weeks, so we expect at most 3 entries (current week, last week, and possibly the week before)
+        assertTrue(data.size() <= 3);
+
+        // Verify the counts for the current week
+        LocalDate currentWeekStart = today.with(DayOfWeek.MONDAY); // Current week starting date
+        ReviewTimelineItemDTO currentWeekData = data.stream()
+            .filter(item -> item.getStartingPeriodDate().isEqual(currentWeekStart))
+            .findFirst()
+            .orElse(null);
+        assertEquals(5L, currentWeekData.getPositive());
+        assertEquals(1L, currentWeekData.getNegative());
+
+        // Verify the counts for the last week
+        LocalDate lastWeekStart = lastWeek.with(DayOfWeek.MONDAY); // Last week starting date
+        ReviewTimelineItemDTO lastWeekData = data.stream()
+            .filter(item -> item.getStartingPeriodDate().isEqual(lastWeekStart))
+            .findFirst()
+            .orElse(null);
+        assertEquals(0L, lastWeekData.getPositive());
+        assertEquals(4L, lastWeekData.getNegative());
+    }
+
+    @Test
+    void getReviewTimeline_shouldEnsureContinuityOfTimeline() {
+
+        when(reviewRepository.countReviewsByDateAndType(any(LocalDateTime.class)))
+            .thenReturn(Collections.emptyList());
+
+        ReviewTimelineResponseDTO result =
+            reviewService.getReviewTimeline(5, Granularity.DAY);
+
+        List<LocalDate> dates = result.data().stream()
+            .map(ReviewTimelineItemDTO::getStartingPeriodDate)
+            .toList();
+
+        // verify that the dates are in order
+        List<LocalDate> sorted = new ArrayList<>(dates);
+        sorted.sort(Comparator.naturalOrder());
+        assertEquals(sorted, dates);
+
+        // verify that the dates are continuous (no gaps)
+        for (int i = 1; i < dates.size(); i++) {
+            assertEquals(1, ChronoUnit.DAYS.between(dates.get(i - 1), dates.get(i)));
+        }
+    }
+
+    //endregion
+    
     //region ------------ DELETE REVIEW ------------
 
     @Test

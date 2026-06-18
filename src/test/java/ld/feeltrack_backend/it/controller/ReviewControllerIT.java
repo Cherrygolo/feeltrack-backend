@@ -19,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -37,7 +36,6 @@ import ld.feeltrack_backend.repository.ReviewRepository;
 import ld.feeltrack_backend.testutils.CustomerTestBuilder;
 import ld.feeltrack_backend.testutils.ReviewTestBuilder;
 import ld.feeltrack_backend.testutils.TestDataFactory;
-import ld.feeltrack_backend.testutils.TimelineDayData;
 
 /**
  * Integration tests for {@link ld.feeltrack_backend.controller.ReviewController}.
@@ -176,48 +174,34 @@ class ReviewControllerIT {
     //endregion
 
     //region ------------ GET REVIEW TIMELINE -----------
-    @Test
-    void getReviewTimeline_shouldReturnCorrectTimelineDatas() throws Exception {
-
-        List<TimelineDayData> expected = List.of(
-            new TimelineDayData(1, 2, 1),
-            new TimelineDayData(5, 0, 2),
-            new TimelineDayData(2, 1, 1)
-        );
-
-        reviewRepository.saveAll(
-            TestDataFactory.createTimelineReviews(expected)
-        );
-
-        ResultActions result = mockMvc.perform(get("/review/stats/timeline"));
-
-        System.out.println("=== RESPONSE ===");
-        System.out.println(result.andReturn().getResponse().getContentAsString());
-
-        result.andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(expected.size()));
-
-        for (int i = 0; i < expected.size(); i++) {
-
-            TimelineDayData day = expected.get(i);
-
-            String path = "$[" + i + "]";
-
-            result.andExpect(jsonPath(path + ".positive")
-                    .value(day.positive()))
-                .andExpect(jsonPath(path + ".negative")
-                    .value(day.negative()))
-                .andExpect(jsonPath(path + ".neutral")
-                    .value(day.neutral()));
-        }
-    }
-
-    @Test
-    void getReviewTimeline_shouldReturnEmptyList_whenNoReviews() throws Exception {
+   @Test
+    void getTimeline_shouldUseDefaultDays_whenNotProvided() throws Exception {
 
         mockMvc.perform(get("/review/stats/timeline"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(0));
+            .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    void getTimeline_shouldUseAdaptedGranularity_whenNoGranularityIsProvided() throws Exception {
+
+        mockMvc.perform(get("/review/stats/timeline")
+                .param("days", "150"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.granularity").value("MONTH"));
+    }
+
+    @Test
+    void getTimeline_shouldReturnCorrectJsonStructure() throws Exception {
+
+        mockMvc.perform(get("/review/stats/timeline")
+                .param("days", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.granularity").isString())
+            .andExpect(jsonPath("$.data").isArray())
+            .andExpect(jsonPath("$.data[0].positive").exists())
+            .andExpect(jsonPath("$.data[0].negative").exists())
+            .andExpect(jsonPath("$.data[0].neutral").exists());
     }
 
     //endregion

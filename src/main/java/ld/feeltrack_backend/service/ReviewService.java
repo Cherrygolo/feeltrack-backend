@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -96,55 +95,6 @@ public class ReviewService {
         );
     }
 
-    //TODO : TO DELETE
-    // Get review counts grouped by day and type for the last N days
-    public List<ReviewTimelineItemDTO> getReviewTimeline(int days) {
-
-        /* 
-         * Initialization of the timeline with all dates and types to ensure continuity in the data
-        */
-        LocalDate startDate = LocalDate.now().minusDays(days);
-        LocalDate endDate = LocalDate.now();
-
-        Map<LocalDate, ReviewTimelineItemDTO> timeline = new LinkedHashMap<>();
-
-        LocalDate current = startDate;
-
-        while (!current.isAfter(endDate)) {
-
-            timeline.put(
-                current,
-                new ReviewTimelineItemDTO(current, 0, 0, 0)
-            );
-
-            current = current.plusDays(1);
-        }
-
-        /*
-         * Filling the timeline with actual counts from the database
-        */
-
-        // Fetching raw counts from the database
-        List<ReviewTimelineProjection> raw =
-            reviewRepository.countReviewsByDateAndType(startDate.atStartOfDay());
-
-        for (ReviewTimelineProjection row : raw) {
-
-            ReviewTimelineItemDTO dto =
-                timeline.get(row.getCreatedDate());
-
-            switch (row.getType()) {
-                case POSITIVE -> dto.addPositive(row.getCount());
-                case NEGATIVE -> dto.addNegative(row.getCount());
-                case NEUTRAL -> dto.addNeutral(row.getCount());
-            }
-        }
-
-        return new ArrayList<>(timeline.values());
-    }
-
-
-    //TODO : TO TEST
     // Get review counts grouped by day and type for the last N days with flexible granularity (day, week, month)
     public ReviewTimelineResponseDTO getReviewTimeline(
         int days,
@@ -188,7 +138,8 @@ public class ReviewService {
         }
 
         /*
-         * Building the complete timeline with all dates to ensure continuity in the data
+         * Building the complete timeline with all dates to ensure continuity in the data, 
+         * inclusive of both start and end dates
         */
 
         List<LocalDate> timelineDates = new ArrayList<>();
