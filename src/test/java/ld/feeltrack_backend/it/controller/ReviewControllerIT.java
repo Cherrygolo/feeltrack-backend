@@ -11,11 +11,14 @@ package ld.feeltrack_backend.it.controller;
 
 import java.util.List;
 
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
+import ld.feeltrack_backend.external.nlp.SentimentService;
 import ld.feeltrack_backend.repository.CustomerRepository;
 import ld.feeltrack_backend.repository.ReviewRepository;
 import ld.feeltrack_backend.testutils.CustomerTestBuilder;
@@ -54,6 +58,9 @@ class ReviewControllerIT {
 
     @Autowired
     private CustomerRepository customerRepository;
+
+    @MockBean
+    private SentimentService sentimentService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -83,6 +90,8 @@ class ReviewControllerIT {
             .withCustomer(persistedCustomer)
             .withText("Très bonne expérience !")
             .build();
+
+        when(sentimentService.analyze("Très bonne expérience !")).thenReturn(ReviewType.POSITIVE);
 
         mockMvc.perform(post("/review")
                 .contentType(MediaType.APPLICATION_JSON)
