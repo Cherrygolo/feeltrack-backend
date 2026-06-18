@@ -156,13 +156,40 @@ L’API peut fonctionner selon deux modes, en fonction de la présence d’un to
 Lorsque le token est fourni, l’application utilise le modèle :
 `nlptown/bert-base-multilingual-uncased-sentiment`
 
-Le token doit être renseigné dans un fichier `application.properties` situé dans le dossier `src/main/resources` :
+#### 💻 Définir la variable d’environnement
+
+**Windows (PowerShell)**
+
+Session temporaire :
+```
+$env:HUGGINGFACE_TOKEN="votre_token_ici"
+```
+
+Persistant :
 
 ```
-huggingface.token=VOTRE_TOKEN_ICI
+setx HUGGINGFACE_TOKEN "votre_token_ici"
 ```
 
-Étapes de l’analyse :
+**Linux / macOS**
+
+```
+export HUGGINGFACE_TOKEN="votre_token_ici"
+```
+
+**Docker / docker-compose** :
+```
+environment:
+  - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+```
+
+**Ou fichier .env :**
+
+HUGGINGFACE_TOKEN=votre_token_ici
+
+
+
+#### Étapes de l’analyse :
 
 1. Le texte est envoyé à l’API Hugging Face via une requête HTTP POST
 2. Le modèle renvoie un score de 1 à 5 étoiles
