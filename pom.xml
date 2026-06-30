@@ -47,6 +47,12 @@
 			<artifactId>mariadb-java-client</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Dépendance pour PostgreSQL (Supabase) -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
 		<!-- Utilisation de Spring Boot Actuator pour le health check -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
