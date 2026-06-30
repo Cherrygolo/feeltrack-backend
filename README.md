@@ -85,7 +85,7 @@ src/
 
 ## Prérequis
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Docker & Docker Compose
 - IDE recommandé : IntelliJ IDEA, Eclipse ou VS Code
