@@ -9,12 +9,14 @@ FeelTrack est une application permettant de collecter et analyser des avis utili
 ## Table des matières
 
 - [À propos](#à-propos)
+- [Objectifs du projet](#-objectifs-du-projet)
 - [Fonctionnalités](#fonctionnalités)
 - [Architecture](#architecture)
 - [Prérequis](#prérequis)
-- [Installation et exécution](#installation-et-exécution)
-- [Infrastructure locale avec Docker](#-infrastructure-locale-avec-docker)
-- [Fonctionnement](#fonctionnement)
+- [Configuration](#️-configuration)
+- [Installation et exécution](#-installation-et-exécution)
+- [Infrastructure locale (Docker)](#-infrastructure-locale-docker)
+- [Fonctionnement de l'analyse de sentiment](#-fonctionnement-de-lanalyse-de-sentiment)
 - [Documentation de l’API](#documentation-de-lapi)
 - [Endpoints de l'API](#endpoints-de-lapi)
 - [Technologies utilisées](#technologies-utilisées)
@@ -92,131 +94,154 @@ src/
 
 ---
 
-## Installation et exécution
+## ⚙️ Configuration
 
-### 1. Cloner le dépôt
+Le projet utilise deux environnements principaux :
 
-```bash
-git clone https://github.com/Cherrygolo/feeltrack-backend.git
-cd feeltrack-backend
-```
+- **Développement local** : MariaDB via Docker Compose
+- **Production** : PostgreSQL (Supabase)
 
-### 2. Lancer l’infrastructure (base de données)
+### Variables d’environnement (production uniquement)
+
+Ces variables sont nécessaires uniquement pour le profil `prod` (déploiement Render ou exécution locale en mode production).
+
+- SPRING_PROFILES_ACTIVE=prod
+- SPRING_DATASOURCE_URL
+- SPRING_DATASOURCE_USERNAME
+- SPRING_DATASOURCE_PASSWORD
+
+---
+
+## 🚀 Installation et exécution
+
+### 1. Prérequis
+
+Avant de lancer le projet, assure-toi d’avoir :
+
+Java 21+
+Maven 3.8+
+Docker (optionnel si utilisation de Supabase)
+Une connexion internet (pour Hugging Face et Supabase)
+
+### 2. Choisir un mode d’exécution
+
+Le projet peut fonctionner dans deux configurations :
+
+#### Option A — Mode développement local (recommandé pour tester)
+
+Utilise une base MariaDB locale via Docker.
+
+1. Lancer la base de données
 
 ```bash
 cd src/main/resources
 docker-compose up -d
 ```
 
-### 3. Lancer l’API Spring Boot
+Cela démarre :
+- MariaDB (port 3307)
+- Adminer (http://localhost:8081)
 
+2. Lancer l’API Spring Boot
 ```bash
 ./mvnw spring-boot:run
 ```
 
-L’API est accessible à l’adresse :
+Accès :
+API : http://localhost:8080/api
+Adminer : http://localhost:8081
 
+#### Option B — Mode production local (Supabase)
+
+Utilise PostgreSQL hébergé sur Supabase.
+
+1. Définir le profil prod
+```bash
+SPRING_PROFILES_ACTIVE=prod
 ```
-http://localhost:8080/
+
+2. Définir les variables d’environnement
+```bash
+SPRING_DATASOURCE_URL=...
+SPRING_DATASOURCE_USERNAME=...
+SPRING_DATASOURCE_PASSWORD=...
+HUGGINGFACE_TOKEN=...
 ```
+
+Pour avoir plus de détails sur HUGGINGFACE_TOKEN voir la section [Fonctionnement](#fonctionnement) .
+
+3. Lancer l’application
+./mvnw spring-boot:run
 
 ---
 
-## 🐳 Infrastructure locale avec Docker
+## 🐳 Infrastructure locale (Docker)
 
-Le projet utilise **Docker Compose** pour fournir les services d’infrastructure nécessaires au fonctionnement de l’API.
+Le projet fournit une infrastructure de développement via Docker Compose.
 
-Les services conteneurisés sont :
+Services disponibles :
+MariaDB → base de données locale
+Adminer → interface web (http://localhost:8081)
 
-- **MariaDB** : base de données relationnelle
-- **Adminer** : interface web d’administration de la base
-
-L’API Spring Boot est exécutée localement et se connecte à la base MariaDB exposée par Docker.
-
-### Services exposés
-
-- MariaDB : `localhost:3307`
-- Adminer : http://localhost:8081
-
-### Connexion à la base via Adminer
-
-- Système : MySQL / MariaDB  
-- Serveur : `db`  
-- Utilisateur : `root`  
-- Mot de passe : `root`
+👉 Ce mode est uniquement destiné au développement local.
 
 ---
 
-## Fonctionnement
+## 🤖 Fonctionnement de l’analyse de sentiment
 
-L’API peut fonctionner selon deux modes, en fonction de la présence d’un token d’accès à l’API Hugging Face.
+L’API peut fonctionner selon deux modes, en fonction de la présence d’un token Hugging Face.
 
-### 🔹 Avec un token Hugging Face
 
-Lorsque le token est fourni, l’application utilise le modèle :
+### Avec un token Hugging Face (mode IA)
+
+Lorsque la variable d’environnement `HUGGINGFACE_TOKEN` est fournie, l’application utilise un modèle pré-entraîné :
+
 `nlptown/bert-base-multilingual-uncased-sentiment`
 
-#### 💻 Définir la variable d’environnement
+#### Étapes de traitement :
 
-**Windows (PowerShell)**
+1. Le texte utilisateur est envoyé au modèle via une requête HTTP POST
+2. Le modèle retourne un score de sentiment compris entre 1 et 5 étoiles
+3. Le backend interprète ce score pour produire une classification métier :
 
-Session temporaire :
-```
-$env:HUGGINGFACE_TOKEN="votre_token_ici"
-```
-
-Persistant :
-
-```
-setx HUGGINGFACE_TOKEN "votre_token_ici"
-```
-
-**Linux / macOS**
-
-```
-export HUGGINGFACE_TOKEN="votre_token_ici"
-```
-
-**Docker / docker-compose** :
-```
-environment:
-  - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
-```
-
-**Ou fichier .env :**
-
-HUGGINGFACE_TOKEN=votre_token_ici
-
-
-
-#### Étapes de l’analyse :
-
-1. Le texte est envoyé à l’API Hugging Face via une requête HTTP POST
-2. Le modèle renvoie un score de 1 à 5 étoiles
-3. Le score est converti en type métier :
-
-| Étoiles | Sentiment |
-|-------|-----------|
+| Score | Sentiment |
+|------|-----------|
 | 1 – 2 | NEGATIVE  |
 | 3     | NEUTRAL   |
 | 4 – 5 | POSITIVE  |
 
-En cas d’erreur ou de réponse invalide, un **fallback automatique** renvoie un sentiment `NEUTRAL`.
+#### ⚠️ Gestion des erreurs
 
-Ce modèle a été choisi car supporte **le français et plusieurs autres langues**, ce qui le rend adapté à des textes multilingues
+En cas d’erreur, timeout ou réponse invalide du service externe, une valeur par défaut `NEUTRAL` est retournée (fallback).
+
+#### Remarque
+
+Ce modèle est multilingue et fonctionne correctement avec le français.
 
 ---
 
-### 🔹 Sans token Hugging Face
+### Sans token Hugging Face (mode fallback local)
 
-Si aucun token n’est fourni, une analyse simplifiée est appliquée :
+Si la variable `HUGGINGFACE_TOKEN` n’est pas définie, l’application utilise une analyse locale simplifiée.
 
-- Détection de marqueurs de négation (`ne`, `n'`, `pas`, `jamais`, `aucun`, `sans`)  
-- Analyse de quelques mots simples indicateurs de sentiment (`bon`, `bien`, `ok` pour positif ; `mal`, `non`, `nul` pour négatif)  
-- Une négation s’applique au mot qui suit (ex. `pas bon` → négatif)  
-- Score final calculé : positif → `POSITIVE`, négatif → `NEGATIVE` 
+#### Méthode utilisée :
 
-⚠️ Cette méthode est volontairement basique et sert uniquement de solution de secours.
+- Détection de mots de négation :
+  `ne`, `n'`, `pas`, `jamais`, `aucun`, `sans`
+- Détection de mots positifs :
+  `bon`, `bien`, `ok`
+- Détection de mots négatifs :
+  `mal`, `non`, `nul`
+- Gestion simple des inversions :
+  ex : `pas bon` → NEGATIVE
+
+#### Résultat final :
+
+- POSITIVE
+- NEGATIVE
+- NEUTRAL (par défaut si ambigu)
+
+⚠️ Cette approche est volontairement simplifiée et sert uniquement de solution de secours lorsque le service IA externe n’est pas disponible.
 
 ---
 
@@ -457,7 +482,7 @@ Ce endpoint est utilisé pour alimenter les graphiques de type timeline dans le 
 
 ---
 
-## Paramètres
+Paramètres :
 
 - `days` *(optional, default = 30)*  
   Nombre de jours à remonter à partir d’aujourd’hui.
@@ -474,7 +499,7 @@ Si `granularity` n’est pas fourni, il est automatiquement déterminé en fonct
 
 ---
 
-## Règle de granularité automatique
+**Règle de granularité automatique**
 
 Si `granularity` est omis, le backend applique la règle suivante :
 
@@ -484,9 +509,9 @@ Si `granularity` est omis, le backend applique la règle suivante :
 
 ---
 
-## Réponse
+Réponse :
 
-### 200 OK
+**200 OK**
 
 ```json
 [
@@ -499,8 +524,8 @@ Si `granularity` est omis, le backend applique la règle suivante :
 ]
 ```
 
-### Exemples
-#### Cas 1 — granularité automatique (DAY)
+**Exemples :**
+##### Cas 1 — granularité automatique (DAY)
 
 GET /api/v1/review/stats/timeline?days=7
 
@@ -519,7 +544,7 @@ Réponse :
 }
 ```
 
-#### Cas 2 — granularité automatique (WEEK)
+##### Cas 2 — granularité automatique (WEEK)
 
 GET /api/v1/review/stats/timeline?days=30
 
@@ -544,7 +569,7 @@ Réponse :
 }
 ```
 
-#### Cas 3 — granularité explicite (MONTH)
+##### Cas 3 — granularité explicite (MONTH)
 
 GET /api/v1/review/stats/timeline?days=90&granularity=MONTH
 
@@ -563,7 +588,7 @@ Réponse :
 }
 ```
 
-#### Explication du format
+##### Explication du format
 startingPeriodDate représente le début de la période agrégée
 Les périodes sans données apparaissent avec zéro comme valeur pour ```positive```,```negative```,```neutral```.
 Le backend contrôle la granularité pour optimiser la lisibilité des graphiques
@@ -577,7 +602,7 @@ Si aucun avis n’existe sur la période → retourne []
 
 Les endpoints Actuator permettent de surveiller l'état et les métriques de l'application.
 
-####GET /actuator/health
+#### GET /actuator/health
 
 Indique l'état de l'application.
 
