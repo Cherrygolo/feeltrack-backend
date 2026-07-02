@@ -16,6 +16,7 @@ FeelTrack est une application permettant de collecter et analyser des avis utili
 - [Configuration](#️-configuration)
 - [Installation et exécution](#-installation-et-exécution)
 - [Infrastructure locale (Docker)](#-infrastructure-locale-docker)
+- [Containerisation (Dockerfile - déploiement cloud)](#-containerisation-dockerfile---déploiement-cloud)
 - [Fonctionnement de l'analyse de sentiment](#-fonctionnement-de-lanalyse-de-sentiment)
 - [Documentation de l’API](#documentation-de-lapi)
 - [Endpoints de l'API](#endpoints-de-lapi)
@@ -168,7 +169,7 @@ SPRING_DATASOURCE_PASSWORD=...
 HUGGINGFACE_TOKEN=...
 ```
 
-Pour avoir plus de détails sur HUGGINGFACE_TOKEN voir la section [Fonctionnement](#fonctionnement) .
+Pour avoir plus de détails sur HUGGINGFACE_TOKEN voir la section [Fonctionnement de l'analyse de sentiment](#-fonctionnement-de-lanalyse-de-sentiment) .
 
 3. Lancer l’application
 ./mvnw spring-boot:run
@@ -183,7 +184,55 @@ Services disponibles :
 MariaDB → base de données locale
 Adminer → interface web (http://localhost:8081)
 
-👉 Ce mode est uniquement destiné au développement local.
+Ce mode est uniquement destiné au développement local.
+
+---
+
+## 📦 Containerisation (Dockerfile - déploiement cloud)
+
+Cette section est importante mais elle n’est PAS une alternative à l’exécution locale
+
+Le Dockerfile sert uniquement à :
+
+construire une image de production
+déployer sur Render / cloud
+exécuter l’application sans Java installé
+
+### Rôle du Dockerfile
+
+Le Dockerfile permet de :
+
+- construire le projet Spring Boot en .jar
+- exécuter l’application dans un conteneur Java léger
+- garantir un environnement reproductible
+- faciliter le déploiement cloud
+
+### Build multi-stage
+1. Build stage
+  - compilation Maven
+  - génération du .jar
+2. Runtime stage
+  - image Java légère
+  - exécution du .jar
+
+__Avantages :__
+- image plus légère
+- démarrage plus rapide
+- sécurité améliorée
+
+### ☁️ Déploiement cloud
+
+Sur une plateforme comme Render :
+
+1. pull du repo Git
+2. build Docker image
+3. run container
+4. exposition via URL publique
+
+__⚠️Important :__
+le Dockerfile n’est PAS utilisé pour le développement local
+il ne remplace pas spring-boot:run
+il est uniquement destiné au cloud / production
 
 ---
 
