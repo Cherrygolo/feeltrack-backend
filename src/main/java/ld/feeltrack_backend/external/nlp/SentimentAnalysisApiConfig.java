@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SentimentAnalysisApiConfig {
 
-    @Value("${huggingface.token}")
+    @Value("${HUGGINGFACE_TOKEN:#{null}}")
     private String token;
 
     @Bean
