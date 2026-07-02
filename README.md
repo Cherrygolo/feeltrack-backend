@@ -446,7 +446,7 @@ Code :
 
 - 404 Bad Request : 
   - code REQUEST_BODY_INVALID : le JSON du corps est incorrect ;
-  - code ARGUMENT_INVALIDS : le customer ou customer.email ou text sont manquant(s)/vide(s)
+  - code VALIDATION_ERROR : le customer ou customer.email ou text sont manquant(s)/vide(s)
 
 - 404 Not found : Si customer.id fourni mais non trouvé
 
