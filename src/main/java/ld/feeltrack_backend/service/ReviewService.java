@@ -40,34 +40,18 @@ public class ReviewService {
     
     public Review createReview(Review review) {
 
-        if (review.getText() == null || review.getText().isBlank()) {
-            throw new IllegalArgumentException("Review text cannot be null or empty.");
-        }
-
         Customer customer = review.getCustomer();
-        if (customer == null) {
-            throw new IllegalArgumentException("Customer info must be provided.");
-        }
 
-        // Si l'ID est présent, customer existant
-        if (customer.getId() != null) {
-            customer = customerService.getCustomerById(customer.getId());
-        } else {
-            // Sinon, création du customer si email présent
-            if (customer.getEmail() == null || customer.getEmail().isBlank()) {
-                throw new IllegalArgumentException("Email is required to create a new review");
-            }
-            customer = customerService.findOrCreateCustomer(customer);
-        }
+        customer = customerService.findOrCreateCustomer(customer);
 
         review.setCustomer(customer);
 
-        // Analyse du type de sentiment du texte de l'avis
+       // Analyze the review text to determine its sentiment type (POSITIVE, NEGATIVE, NEUTRAL)
        review.setType(sentimentService.analyze(review.getText()));
 
         return reviewRepository.save(review);
     }
-    
+
     public List<Review> findReviews(ReviewType reviewType) {
 
         if (reviewType == null) {

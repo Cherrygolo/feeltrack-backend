@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 @Entity
 @Table (name = "customer")
@@ -17,10 +18,11 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotBlank
-    @Email
+    @NotBlank(message = "Email address is required.")
+    @Email(message = "Email address is invalid.")
     @Column(nullable = false)
     private String email;
+    @Pattern(regexp = "^\\+?[0-9]{7,15}$", message = "Phone number must be between 7 and 15 digits, optionally starting with a '+'")
     private String phone;
 
     protected Customer() {

@@ -17,6 +17,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -72,6 +73,20 @@ public class ApplicationControllerAdvice {
     @ExceptionHandler({IllegalArgumentException.class})
     public @ResponseBody ErrorResponse handleException(IllegalArgumentException exception) {
         return new ErrorResponse("ARGUMENTS_INVALID", exception.getMessage());
+    }
+
+    @ResponseStatus(BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public @ResponseBody ErrorResponse handleValidationException(MethodArgumentNotValidException ex) {
+
+        String message = ex.getBindingResult()
+        .getFieldErrors()
+        .stream()
+        .map(error -> error.getField() + ": " + error.getDefaultMessage())
+        .reduce((a, b) -> a + ", " + b)
+        .orElse("Validation error");
+
+        return new ErrorResponse("VALIDATION_ERROR", message);
     }
 
     @ResponseStatus(BAD_REQUEST)

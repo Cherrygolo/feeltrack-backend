@@ -33,9 +33,11 @@ import ld.feeltrack_backend.controller.ReviewController;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
 import ld.feeltrack_backend.dto.ReviewTimelineItemDTO;
 import ld.feeltrack_backend.dto.ReviewTimelineResponseDTO;
+import ld.feeltrack_backend.entity.Customer;
 import ld.feeltrack_backend.entity.Review;
 import ld.feeltrack_backend.enums.ReviewType;
 import ld.feeltrack_backend.service.ReviewService;
+import ld.feeltrack_backend.testutils.CustomerTestBuilder;
 import ld.feeltrack_backend.testutils.ReviewTestBuilder;
 import ld.feeltrack_backend.testutils.TestDataFactory;
 import ld.feeltrack_backend.testutils.TimelineDayData;
@@ -73,6 +75,64 @@ class ReviewControllerTest {
                 .andExpect(jsonPath("$.text").value(testReview.getText()))
                 .andExpect(jsonPath("$.id").value(testReview.getId()));
     }
+
+    @Test
+    void createReview_shouldReturn400_withValidationErrors_whenReviewTextIsMissing() throws Exception {
+        Review invalidReview = ReviewTestBuilder.aReview()
+                .withText(null)
+                .build();
+
+        mockMvc.perform(post("/review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidReview)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void createReview_shouldReturn400_withValidationErrors_whenCustomerInfoIsMissing() throws Exception {
+        Review invalidReview = ReviewTestBuilder.aReview()
+                .withCustomer(null)
+                .build();
+
+        mockMvc.perform(post("/review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidReview)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void createReview_shouldReturn400_withValidationErrors_whenCustomerEmailIsMissing() throws Exception {
+        Customer customerWithoutEmail = CustomerTestBuilder.aCustomer()
+                .withEmail(null)
+                .build();
+        Review invalidReview = ReviewTestBuilder.aReview()
+                .withCustomer(customerWithoutEmail)
+                .build();
+
+        mockMvc.perform(post("/review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidReview)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void createReview_shouldReturn400_withValidationErrors_whenCustomerInfoAreInvalid() throws Exception {
+        Customer customerWithBadlyFormattedEmail = CustomerTestBuilder.aCustomer()
+                .withEmail("invalid-email")
+                .build();
+        Review invalidReview = ReviewTestBuilder.aReview()
+                .withCustomer(customerWithBadlyFormattedEmail)
+                .build();
+                mockMvc.perform(post("/review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidReview)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
 
     //endregion
 

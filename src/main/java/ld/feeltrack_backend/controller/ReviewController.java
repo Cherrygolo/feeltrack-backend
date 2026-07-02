@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import ld.feeltrack_backend.dto.ReviewStatsDTO;
 import ld.feeltrack_backend.dto.ReviewTimelineResponseDTO;
 import ld.feeltrack_backend.entity.Review;
@@ -34,7 +35,7 @@ public class ReviewController {
     }
 
     @PostMapping(consumes = APPLICATION_JSON_VALUE)
-    public ResponseEntity<Review> createReview (@RequestBody Review review) {
+    public ResponseEntity<Review> createReview (@Valid @RequestBody Review review) {
         Review createdReview = this.reviewService.createReview(review);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdReview);
     }
