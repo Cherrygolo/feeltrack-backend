@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HomeController {
 
-    @GetMapping("/api")
+     @GetMapping({"/api", "/api/"})
     public Map<String, String> api() {
         return Map.of(
                 "application", "FeelTrack API",
