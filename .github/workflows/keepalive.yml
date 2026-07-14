@@ -1,0 +1,15 @@
+name: Keep FeelTrack Alive
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping FeelTrack API health
+        run: |
+          curl --fail --max-time 180 https://feeltrack-backend-di2y.onrender.com/api/actuator/health
